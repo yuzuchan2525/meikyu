@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mini RPG Battle DX</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(circle at top,#2d334a,#11131d);color:white;display:grid;place-items:start center;min-height:100vh;padding:16px 0}.game{width:min(1080px,94vw);background:#1b2033;border:2px solid #4b557a;border-radius:18px;padding:18px;box-shadow:0 20px 60px #0008}h1{margin:0 0 18px;text-align:center;letter-spacing:.08em}.top-info,.commands{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}.top-info{position:sticky;top:0;z-index:10;background:#1b2033;padding:8px 0}.commands{position:sticky;bottom:0;z-index:10;background:#1b2033;padding:8px 0}.mode-select{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.info-card,.shop-card,.unit,.log{background:#101420;border:1px solid #4d5578;border-radius:12px;padding:12px}.info-card{text-align:center;font-weight:800}.field{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}.unit{background:#252b44;text-align:center;position:relative;overflow:hidden}.sprite{font-size:54px;margin:10px 0;filter:drop-shadow(0 8px 8px #0008);transition:transform .15s}.shake{animation:shake .25s}.attack{transform:translateY(-8px) scale(1.08)}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}.bar{height:18px;background:#111522;border-radius:999px;overflow:hidden;border:1px solid #5b6386;margin-top:8px}.hp{height:100%;width:100%;background:linear-gradient(90deg,#36d576,#b5f26b);transition:width .25s}.exp{height:100%;width:0%;background:linear-gradient(90deg,#6aa6ff,#d36bff);transition:width .25s}.mpbar{height:100%;width:100%;background:linear-gradient(90deg,#4aa3ff,#9d6bff);transition:width .25s}.status{margin-top:8px;opacity:.9;line-height:1.5;white-space:pre-line}button{cursor:pointer;padding:13px;border:0;border-radius:12px;background:#5661ff;color:white;font-weight:800;font-size:15px}button:hover{filter:brightness(1.15)}.danger{background:#c34242}.gold{background:#b88925}.green{background:#249b68}.purple{background:#7654d8}.shop-grid,.passive-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.shop-card h3{margin:0 0 6px}.shop-card p{margin:4px 0 10px;opacity:.85;min-height:48px}.hidden{display:none}.log{min-height:110px;max-height:160px;overflow:auto;line-height:1.45;white-space:pre-line}.popup{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-weight:900;font-size:24px;pointer-events:none;animation:popFloat .8s ease-out forwards;text-shadow:0 3px 8px #000}.popup.damage{color:#ff6b6b}.popup.poison{color:#b66bff}.popup.heal{color:#4cff88}.popup.mp{color:#6aa6ff}.rarity-Common{border-color:#8d96aa}.rarity-Rare{border-color:#4aa3ff;box-shadow:0 0 12px #4aa3ff44}.rarity-Epic{border-color:#b66bff;box-shadow:0 0 14px #b66bff55}.rarity-Legend{border-color:#ffd166;box-shadow:0 0 18px #ffd16666;background:linear-gradient(180deg,#2a2540,#181220)}@keyframes popFloat{0%{opacity:0;transform:translate(-50%,-20%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-115%) scale(1)}}
+.title{font-size:36px;letter-spacing:.15em;text-shadow:0 0 12px #8aa2ff,0 0 24px #4a5cff;animation:fadeIn 1.2s ease-out}
+.subtitle{margin-top:-10px;text-align:center;opacity:.6;letter-spacing:.2em;animation:fadeIn 1.8s ease-out}
+@keyframes fadeIn{0%{opacity:0;transform:translateY(-10px)}100%{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<main class="game">
+<h1 class="title">迷宮行進曲</h1>
+<p class="subtitle">Labyrinth March</p>
+<section id="characterSelect">
+  <h2 style="text-align:center;margin:0 0 14px;">キャラを選択</h2>
+  <div class="mode-select">
+    <button class="green" onclick="selectCharacter('hero')">先駆者<br>万能型</button>
+    <button class="purple" onclick="selectCharacter('poison')">毒喰<br>毒吸収型・低HP</button>
+    <button class="gold" onclick="selectCharacter('mage')">魔導士<br>MP魔法型</button>
+  </div>
+</section>
+
+<section id="gameArea" class="hidden">
+<section class="top-info"><div class="info-card" id="stageInfo"></div><div class="info-card" id="levelInfo"></div><div class="info-card" id="goldInfo"></div><div class="info-card" id="modeInfo"></div><div class="info-card" id="bestInfo"></div></section>
+<section class="field"><div class="unit" id="playerBox"><h2 id="playerName">先駆者</h2><div class="sprite" id="playerSprite">🧑‍💻</div><div class="bar"><div class="hp" id="playerHp"></div></div><div class="bar"><div class="mpbar" id="playerMp"></div></div><div class="bar"><div class="exp" id="playerExp"></div></div><div class="status" id="playerStatus"></div></div><div class="unit" id="enemyBox"><h2 id="enemyName">Enemy</h2><div class="sprite" id="enemySprite">👾</div><div class="bar"><div class="hp" id="enemyHp"></div></div><div class="status" id="enemyStatus"></div></div></section>
+<section class="commands" id="battleCommands"><button onclick="playerAction('attack')">攻撃</button><button onclick="playerAction('skill')">スキル</button><button onclick="playerAction('magic')">魔法</button><button onclick="playerAction('heal')">回復</button><button onclick="playerAction('guard')">ガード</button></section>
+<section id="townArea" class="hidden"><div class="shop-grid" id="shopGrid"></div><section class="commands"><button onclick="restAtInn()">宿屋 10G</button><button onclick="upgradeWeapon()">武器強化</button><button onclick="rerollShop()">ショップ更新</button><button onclick="leaveTown()">街を出る</button></section></section>
+<section id="passiveArea" class="hidden"><div class="passive-grid" id="passiveGrid"></div><section class="commands"><button onclick="skipPassive()">今回は選ばない</button><button onclick="toggleHelp()">ヘルプ</button><button onclick="resetToModeSelect()">難易度選択へ</button><button onclick="startGame(mode||'normal')">最初から</button></section></section>
+<section class="commands" id="systemCommands"><button onclick="startGame()">最初から</button><button onclick="resetToModeSelect()">キャラ選択へ</button><button onclick="toggleHelp()">ヘルプ</button><button onclick="submitBuild()">記録送信</button><button onclick="loadDepthRanking()">最深度</button><button onclick="rateBattle()">レート戦</button><button onclick="loadRateRanking()">レート順位</button></section>
+</section>
+<section class="log" id="log">迷宮行進曲、開幕。
+深層へ進め。</section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const enemyTypes=[{name:'Bug Slime',icon:'🐛',hp:55,atk:8,exp:18,gold:8},{name:'Wild Goblin',icon:'👺',hp:75,atk:12,exp:28,gold:14},{name:'Dark Bot',icon:'🤖',hp:95,atk:16,exp:42,gold:22},{name:'Code Dragon',icon:'🐉',hp:140,atk:22,exp:75,gold:40},{name:'Abyss Knight',icon:'🛡️',hp:190,atk:30,exp:110,gold:65},{name:'Void Serpent',icon:'🐍',hp:260,atk:42,exp:160,gold:100}];
+const bossData={10:{name:'Mini Boss: Iron Ogre',icon:'👹',hp:420,atk:32,exp:180,gold:150},20:{name:'Boss: Cyber Hydra',icon:'🐲',hp:900,atk:58,exp:420,gold:360},30:{name:'FINAL BOSS: Eclipse Dragon',icon:'🌑🐉',hp:2600,atk:255,exp:1200,gold:1000}};
+const shopItems=[{id:'potion',name:'ポーション',price:15,desc:'HPを45%回復。固定販売。',type:'item',unlock:1},{id:'hiPotion',name:'ハイポーション',price:45,desc:'HPを80%回復。固定販売。',type:'item',unlock:1},{id:'ironSword',name:'鉄の剣',price:55,desc:'攻撃力 +8。普通の武器。',type:'weapon',atk:8,effect:null,unlock:1},{id:'poisonDagger',name:'ポイズンダガー',price:95,desc:'攻撃力 +5。通常攻撃で毒を狙える。',type:'weapon',atk:5,effect:'poison',unlock:1},{id:'flameSword',name:'炎の剣',price:130,desc:'攻撃力 +18。通常攻撃で火傷を狙える。',type:'weapon',atk:18,effect:'burn',unlock:5},{id:'plasmaBlade',name:'プラズマブレード',price:260,desc:'攻撃力 +34。低確率でスタン。',type:'weapon',atk:34,effect:'stun',unlock:10},{id:'vampireBlade',name:'吸血剣',price:340,desc:'攻撃力 +30。通常攻撃時、攻撃力の10%を吸収。',type:'weapon',atk:30,effect:'lifesteal',unlock:10},{id:'dragonKiller',name:'ドラゴンキラー',price:520,desc:'攻撃力 +58。ボスに追加ダメージ。',type:'weapon',atk:58,effect:'boss',unlock:15},{id:'voidEdge',name:'ヴォイドエッジ',price:980,desc:'攻撃力 +95。複数状態異常を狙える。',type:'weapon',atk:95,effect:'void',unlock:25},{id:'leatherArmor',name:'革の鎧',price:45,desc:'防御力 +4',type:'armor',def:4,unlock:1},{id:'steelArmor',name:'鋼の鎧',price:120,desc:'防御力 +10',type:'armor',def:10,unlock:5},{id:'dragonMail',name:'竜の鎧',price:300,desc:'防御力 +22',type:'armor',def:22,unlock:10},{id:'aegisArmor',name:'イージスアーマー',price:640,desc:'防御力 +42',type:'armor',def:42,unlock:20},{id:'fire',name:'魔法: ファイア',price:70,desc:'即時発動。最大MP20%消費。35〜55ダメージ。火傷付与。',type:'magic',spell:'fire',unlock:1},{id:'thunder',name:'魔法: サンダー',price:150,desc:'即時発動。最大MP30%消費。65〜95ダメージ。スタン付与。',type:'magic',spell:'thunder',unlock:5},{id:'meteor',name:'魔法: メテオ',price:420,desc:'詠唱魔法。最大MP45%消費。次ターン大ダメージ。',type:'magic',spell:'meteor',unlock:15},{id:'nova',name:'魔法: ノヴァ',price:900,desc:'詠唱魔法。最大MP65%消費。次ターン超ダメージ。',type:'magic',spell:'nova',unlock:25}];
+const passiveTypes={mpCost:{name:'省エネ詠唱',unit:'%',desc:v=>`魔法のMP消費-${v}%`},mpRegen:{name:'マナフロー',unit:'%',desc:v=>`毎ターンMP回復+${v}%`},maxMp:{name:'魔力増幅',unit:'',desc:v=>`最大MP+${v}`},burnTank:{name:'火傷耐久',unit:'%',desc:v=>`火傷中の敵から受けるダメージ-${v}%`},venomHeal:{name:'毒吸収',unit:'%',desc:v=>`毒状態の敵がいると毎ターン最大HP${v}%回復`},glassAtk:{name:'ガラスキャノン',unit:'',desc:v=>`攻撃力+${v} / 防御力-${Math.ceil(v/3)}`},guardPower:{name:'ガード職人',unit:'%',desc:v=>`ガード時の軽減率+${v}%`},burnBoost:{name:'燃焼強化',unit:'%',desc:v=>`火傷付与率+${v}%`},poisonBoost:{name:'毒刃強化',unit:'%',desc:v=>`毒付与率+${v}%`},lifestealBoost:{name:'吸血強化',unit:'%',desc:v=>`吸血武器の回復率+${v}%`},fastCast:{name:'詠唱省略',unit:'%',desc:v=>`詠唱なしでメテオ/ノヴァ発動。ただし威力-${v}%`},skillBoost:{name:'武技強化',unit:'%',desc:v=>`スキルダメージ+${v}%`},maxHpBoost:{name:'生命力強化',unit:'%',desc:v=>`最大HP+${v}%`},defBoost:{name:'防御強化',unit:'',desc:v=>`防御力+${v}`},regen:{name:'自然回復',unit:'%',desc:v=>`毎ターン最大HP${v}%回復`}};
+const rarityTable=[{rarity:'Common',value:5,rate:.62},{rarity:'Rare',value:10,rate:.25},{rarity:'Epic',value:15,rate:.10},{rarity:'Legend',value:20,rate:.03}];
+let player,enemy,stage,gold,mode,gameMode,busy,bestStage,selectedCharacter='hero';let currentShop=[],passiveChoices=[],pendingAfterPassive='town',casting=null;
+
+const firebaseConfig={
+  apiKey:"AIzaSyBuwSF_ELaX7bbUnOnCc_c6J3dScgfLkts",
+  authDomain:"ro-guraiku.firebaseapp.com",
+  projectId:"ro-guraiku",
+  storageBucket:"ro-guraiku.firebasestorage.app",
+  messagingSenderId:"336229027551",
+  appId:"1:336229027551:web:9567593cf084eff625a36a"
+};
+let db=null;
+try{firebase.initializeApp(firebaseConfig);db=firebase.firestore();}catch(e){console.log('Firebase未設定または初期化失敗',e);}
+function getPlayerId(){let id=localStorage.getItem('miniRpgPlayerId');if(!id){id='player_'+Math.random().toString(36).slice(2);localStorage.setItem('miniRpgPlayerId',id);}return id;}
+function getPlayerName(){let name=localStorage.getItem('miniRpgPlayerName');if(!name){name=prompt('ランキング名を入力してね')||'noname';localStorage.setItem('miniRpgPlayerName',name);}return name;}
+function getRating(){return Number(localStorage.getItem('miniRpgRating')||1000);}
+function setRating(r){localStorage.setItem('miniRpgRating',String(Math.floor(r)));}
+function makeBuild(){recalcStats();return{id:getPlayerId(),name:getPlayerName(),character:selectedCharacter,stage,mode:'hard',rating:getRating(),level:player.level,maxHp:player.maxHp,hp:player.maxHp,atk:player.atk,def:player.def,maxMp:player.maxMp,mpRegen:player.mpRegen,weapon:player.weapon,armor:player.armor,spells:player.spells,passives:player.passives,gold,updatedAt:Date.now()};}
+async function submitBuild(){if(!db)return writeLog('Firebase設定がまだ入ってない！ firebaseConfigを自分の値に置き換えてね。');const build=makeBuild();await db.collection('builds').doc(build.id).set(build,{merge:true});writeLog(`記録送信完了！ STAGE ${build.stage} / RATE ${build.rating}`);}
+async function loadDepthRanking(){
+  if(!db)return writeLog('Firebase設定がまだ入ってない！');
+  const snap=await db.collection('builds').orderBy('stage','desc').limit(10).get();
+  let text='🏆 最深度ランキング\n';
+  let i=1;
+  snap.forEach(doc=>{
+    const d=doc.data();
+    text += i+'. '+(d.name||'noname')+' / STAGE '+(d.stage||1)+' / '+(d.character||'hero')+' / RATE '+(d.rating||1000)+'\n';
+    i++;
+  });
+  writeLog(text);
+}
+async function loadRateRanking(){
+  if(!db)return writeLog('Firebase設定がまだ入ってない！');
+  const snap=await db.collection('builds').orderBy('rating','desc').limit(10).get();
+  let text='⚔️ レートランキング\n';
+  let i=1;
+  snap.forEach(doc=>{
+    const d=doc.data();
+    text += i+'. '+(d.name||'noname')+' / RATE '+(d.rating||1000)+' / STAGE '+(d.stage||1)+'\n';
+    i++;
+  });
+  writeLog(text);
+}
+function calcElo(my,op,win){const expected=1/(1+Math.pow(10,(op-my)/400));return Math.floor(my+32*((win?1:0)-expected));}
+function pvpDamage(raw,def){return Math.max(1,Math.floor(raw*(100/(100+def))));}
+function simulateDuel(a,b){let A={...a,hp:a.maxHp},B={...b,hp:b.maxHp};let log=[];for(let turn=1;turn<=40;turn++){let ad=pvpDamage(Math.floor(A.atk*(0.85+Math.random()*0.3)),B.def);B.hp-=ad;log.push(`${turn}T ${A.name} → ${ad}`);if(B.hp<=0)return{win:true,log};let bd=pvpDamage(Math.floor(B.atk*(0.85+Math.random()*0.3)),A.def);A.hp-=bd;log.push(`${turn}T ${B.name} → ${bd}`);if(A.hp<=0)return{win:false,log};}return{win:A.hp>=B.hp,log};}
+async function rateBattle(){
+  if(!db)return writeLog('Firebase設定がまだ入ってない！');
+  await submitBuild();
+  const my=makeBuild();
+  const low=my.rating-150, high=my.rating+150;
+  let snap=await db.collection('builds').where('rating','>=',low).where('rating','<=',high).limit(20).get();
+  let list=[];
+  snap.forEach(doc=>{const d=doc.data();if(d.id!==my.id)list.push(d);});
+  if(!list.length){
+    snap=await db.collection('builds').limit(20).get();
+    snap.forEach(doc=>{const d=doc.data();if(d.id!==my.id)list.push(d);});
+  }
+  if(!list.length)return writeLog('まだ対戦相手がいない！先に誰かのビルドが必要。');
+  const opp=list[rand(0,list.length-1)];
+  const result=simulateDuel(my,opp);
+  const oldRating=my.rating;
+  const newRating=calcElo(my.rating,opp.rating||1000,result.win);
+  setRating(newRating);
+  await db.collection('builds').doc(my.id).set({...my,rating:newRating,updatedAt:Date.now()},{merge:true});
+  writeLog(
+    'レート戦 VS '+(opp.name||'noname')+' ('+(opp.rating||1000)+')\n'+
+    '結果: '+(result.win?'勝利！':'敗北…')+'\n'+
+    'RATE '+oldRating+' → '+newRating+'\n\n'+
+    result.log.slice(0,10).join('\n')
+  );
+}
+function characterLabel(){return selectedCharacter==='poison'?'毒喰':selectedCharacter==='mage'?'魔導士':'先駆者';}
+function statusObj(){return{poison:0,burn:0,stun:0};}function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}function writeLog(t){const log=document.getElementById('log');log.textContent=t;log.scrollTop=log.scrollHeight;}function addLog(t){const log=document.getElementById('log');log.textContent+='\n'+t;log.scrollTop=log.scrollHeight;}function passiveSum(type){return player&&player.passives?player.passives.filter(p=>p.type===type).reduce((s,p)=>s+p.value,0):0;}function hasPassive(type){return passiveSum(type)>0;}function passiveNames(){return player.passives.length?player.passives.map(p=>`${passiveTypes[p.type].name}${p.value}${passiveTypes[p.type].unit}[${p.rarity}]`).join(', '):'なし';}function rollRarity(){let r=Math.random(),acc=0;for(const x of rarityTable){acc+=x.rate;if(r<=acc)return x;}return rarityTable[0];}
+function popupText(target,text,type){const box=document.getElementById(target==='player'?'playerBox':'enemyBox');if(!box)return;const p=document.createElement('div');p.className='popup '+(type||'damage');p.textContent=text;const x=Math.random()*70-35;const y=Math.random()*36-18;p.style.left=`calc(50% + ${x}px)`;p.style.top=`calc(42% + ${y}px)`;box.appendChild(p);setTimeout(()=>p.remove(),850);}
+function selectCharacter(type){selectedCharacter=type;document.getElementById('characterSelect').classList.add('hidden');startGame();}
+function startGame(){mode='hard';if(selectedCharacter==='hero'){
+player={level:1,exp:0,nextExp:40,baseMaxHp:110,maxHp:110,hp:110,baseAtk:18,baseDef:4,atk:18,def:4,baseMaxMp:45,maxMp:45,mp:45,mpRegen:0,potions:3,hiPotions:0,weapon:{name:'なし',atk:0,plus:0,effect:null},armor:{name:'なし',def:0},spells:[],passives:[],guard:false,skillCd:0,magicCd:0,status:statusObj()};
+}
+if(selectedCharacter==='poison'){
+player={level:1,exp:0,nextExp:40,baseMaxHp:80,maxHp:80,hp:80,baseAtk:12,baseDef:3,atk:12,def:3,baseMaxMp:40,maxMp:40,mp:40,mpRegen:0,potions:3,hiPotions:0,weapon:{name:'なし',atk:0,plus:0,effect:null},armor:{name:'なし',def:0},spells:[],passives:[{type:'venomHeal',value:5,rarity:'Common'}],guard:false,skillCd:0,magicCd:0,status:statusObj()};
+}
+if(selectedCharacter==='mage'){
+player={level:1,exp:0,nextExp:40,baseMaxHp:90,maxHp:90,hp:90,baseAtk:14,baseDef:3,atk:14,def:3,baseMaxMp:80,maxMp:80,mp:80,mpRegen:5,potions:3,hiPotions:0,weapon:{name:'なし',atk:0,plus:0,effect:null},armor:{name:'なし',def:0},spells:['fire'],passives:[],guard:false,skillCd:0,magicCd:0,status:statusObj()};
+}stage=1;gold=30;gameMode='battle';busy=false;currentShop=[];passiveChoices=[];casting=null;bestStage=Number(localStorage.getItem('miniRpgBestStage')||1);document.getElementById('gameArea').classList.remove('hidden');spawnEnemy();document.getElementById('playerName').textContent=characterLabel();writeLog(`${characterLabel()}で出撃！ステージ30のEclipse Tyrantを目指せ！`);updateView();}
+function resetToModeSelect(){document.getElementById('characterSelect').classList.remove('hidden');document.getElementById('gameArea').classList.add('hidden');writeLog('キャラを選んでスタート！');}
+function recalcStats(){player.maxHp=Math.floor(player.baseMaxHp*(1+passiveSum('maxHpBoost')/100));player.maxMp=player.baseMaxMp+passiveSum('maxMp');player.mpRegen=Math.max(1,Math.floor(player.maxMp*(0.05+passiveSum('mpRegen')/100)));player.atk=player.baseAtk+player.weapon.atk+(player.weapon.plus||0)*4+passiveSum('glassAtk');player.def=player.baseDef+player.armor.def+passiveSum('defBoost')-Math.ceil(passiveSum('glassAtk')/3);player.def=Math.max(0,player.def);player.hp=Math.min(player.hp,player.maxHp);player.mp=Math.min(player.mp,player.maxMp);}
+function spawnEnemy(){if(bossData[stage]){const b=bossData[stage],sc=stage===30?1:1+stage*.03;enemy={name:b.name,icon:b.icon,maxHp:Math.floor(b.hp*sc),hp:Math.floor(b.hp*sc),atk:Math.floor(b.atk*sc),exp:b.exp,gold:b.gold,guard:false,boss:true,status:statusObj()};return;}const base=enemyTypes[Math.min(enemyTypes.length-1,Math.floor((stage-1)/5))],sc=1+(stage-1)*.20;enemy={name:base.name,icon:base.icon,maxHp:Math.floor(base.hp*sc),hp:Math.floor(base.hp*sc),atk:Math.floor(base.atk*sc),exp:Math.floor(base.exp*sc),gold:Math.floor(base.gold*sc),guard:false,boss:false,status:statusObj()};}
+function damage(target,amount){if(target.guard){let rate=.45;if(target===player)rate=Math.max(.15,rate-passiveSum('guardPower')/100);amount=Math.floor(amount*rate);}amount=Math.max(1,amount);target.hp=Math.max(0,target.hp-amount);target.guard=false;popupText(target===player?'player':'enemy','-'+amount,'damage');return amount;}
+function statusText(u){const s=u.status||statusObj(),a=[];if(u.guard)a.push('防御');if(s.poison>0)a.push(`毒${s.poison}(毎ターン5%ダメ)`);if(s.burn>0)a.push(`火傷${s.burn}(攻撃-30%)`);if(s.stun>0)a.push(`スタン${s.stun}(行動不能)`);return a.length?a.join(' / '):'なし';}
+function applyStatusEffects(u,name){if(!u.status)u.status=statusObj();if(u.status.poison>0){const d=Math.max(1,Math.floor(u.maxHp*.05));u.hp=Math.max(0,u.hp-d);u.status.poison--;popupText(u===player?'player':'enemy','毒 -'+d,'poison');addLog(`${name}は毒で${d}ダメージ！`);}if(u.status.burn>0)u.status.burn--;}
+function updateBest(){if(stage>bestStage){bestStage=stage;localStorage.setItem('miniRpgBestStage',bestStage);}}
+function updateView(){recalcStats();updateBest();document.getElementById('stageInfo').textContent=gameMode==='town'?`TOWN / STAGE ${stage}`:gameMode==='passive'?`REWARD / STAGE ${stage}`:`STAGE ${stage}`;document.getElementById('levelInfo').textContent=`LV ${player.level} / EXP ${player.exp}/${player.nextExp}`;document.getElementById('goldInfo').textContent=`GOLD ${gold} / 薬 ${player.potions} / 高薬 ${player.hiPotions}`;document.getElementById('modeInfo').textContent=`MODE HARD`;document.getElementById('bestInfo').textContent=`BEST ${bestStage}`;document.getElementById('battleCommands').classList.toggle('hidden',gameMode!=='battle');document.getElementById('townArea').classList.toggle('hidden',gameMode!=='town');document.getElementById('passiveArea').classList.toggle('hidden',gameMode!=='passive');document.getElementById('systemCommands').classList.toggle('hidden',gameMode!=='battle');if(gameMode==='town'){document.getElementById('enemyName').textContent='Town Shop';document.getElementById('enemySprite').textContent='🏘️';document.getElementById('enemyHp').style.width='100%';document.getElementById('enemyStatus').textContent='ポーション/ハイポーション固定＋ランダム3枠';renderShop();}else if(gameMode==='passive'){document.getElementById('enemyName').textContent='Boss Reward';document.getElementById('enemySprite').textContent='🎁';document.getElementById('enemyHp').style.width='100%';document.getElementById('enemyStatus').textContent='3つのパッシブから1つ選択';renderPassiveChoices();}else{document.getElementById('enemyName').textContent=enemy.name;document.getElementById('enemySprite').textContent=enemy.icon;document.getElementById('enemyHp').style.width=`${enemy.hp/enemy.maxHp*100}%`;document.getElementById('enemyStatus').textContent=`HP ${enemy.hp}/${enemy.maxHp}\nATK ${enemy.atk}${enemy.boss?'\nBOSS':''}\n状態: ${statusText(enemy)}`;}document.getElementById('playerHp').style.width=`${player.hp/player.maxHp*100}%`;document.getElementById('playerMp').style.width=`${player.mp/player.maxMp*100}%`;document.getElementById('playerExp').style.width=`${player.exp/player.nextExp*100}%`;document.getElementById('playerStatus').textContent=`HP ${player.hp}/${player.maxHp}\nMP ${player.mp}/${player.maxMp} 回復+${player.mpRegen}\nATK ${player.atk} / DEF ${player.def}\n武器: ${player.weapon.name}${player.weapon.plus?`+${player.weapon.plus}`:''} / 防具: ${player.armor.name}\n魔法: ${player.spells.length?player.spells.join(', '):'なし'}\nパッシブ: ${passiveNames()}\n詠唱: ${casting?casting.spell:'なし'}\n状態: ${statusText(player)}\nCD: スキル${player.skillCd} / 魔法${player.magicCd}`+(player.guard?'\nGUARD':'');}
+function shopCompareText(item){if(item.type==='weapon'){const now=player.weapon.atk+(player.weapon.plus||0)*4,diff=item.atk-now;return `<br>現在武器: ${player.weapon.name} / 攻撃補正 ${now}<br>購入後: 攻撃補正 ${item.atk} (${diff>=0?'+':''}${diff})`;}if(item.type==='armor'){const now=player.armor.def,diff=item.def-now;return `<br>現在防具: ${player.armor.name} / 防御補正 ${now}<br>購入後: 防御補正 ${item.def} (${diff>=0?'+':''}${diff})`;}return '';}
+function makeShop(){const potion=shopItems.find(i=>i.id==='potion'),hiPotion=shopItems.find(i=>i.id==='hiPotion'),pool=shopItems.filter(i=>i.id!=='potion'&&i.id!=='hiPotion'&&stage>=i.unlock);currentShop=[potion,hiPotion,...[...pool].sort(()=>Math.random()-.5).slice(0,3)];}
+function renderShop(){const grid=document.getElementById('shopGrid');grid.innerHTML='';if(currentShop.length===0)makeShop();currentShop.forEach(item=>{const card=document.createElement('div');card.className='shop-card';card.innerHTML=`<h3>${item.name}</h3><p>${item.desc}${shopCompareText(item)}<br>解放: STAGE ${item.unlock}</p><button onclick="buyItem('${item.id}')">${item.price}Gで買う</button>`;grid.appendChild(card);});}
+function rerollShop(){const cost=20+stage*2;if(gold<cost)return writeLog(`ショップ更新には${cost}G必要！`);gold-=cost;makeShop();writeLog(`ショップを更新した！ -${cost}G`);updateView();}
+function buyItem(id){
+  const item=shopItems.find(i=>i.id===id);
+  if(!item)return;
+  if(gold<item.price){writeLog(`${item.name}を買うにはGOLDが足りない！`);popupText('player','GOLD不足','damage');return;}
+  gold-=item.price;
+
+  if(item.id==='potion'){
+    player.potions++;
+    popupText('player','ポーション +1','heal');
+  }
+
+  if(item.id==='hiPotion'){
+    player.hiPotions++;
+    popupText('player','ハイポ +1','heal');
+  }
+
+  if(item.type==='weapon'){
+    const before=player.weapon.name;
+    const beforeAtk=player.weapon.atk+(player.weapon.plus||0)*4;
+    player.weapon={name:item.name,atk:item.atk,plus:0,effect:item.effect||null};
+    popupText('player','武器変更','mp');
+    writeLog(`${before}(${beforeAtk}) から ${item.name}(${item.atk}) に持ち替えた！`);
+    updateView();
+    return;
+  }
+
+  if(item.type==='armor'){
+    if(item.def<=player.armor.def){gold+=item.price;writeLog('今の防具の方が強い。');popupText('player','購入なし','damage');return;}
+    player.armor={name:item.name,def:item.def};
+    popupText('player','防具更新','mp');
+  }
+
+  if(item.type==='magic'){
+    if(player.spells.includes(item.spell)){gold+=item.price;writeLog('その魔法はもう覚えている！');popupText('player','習得済み','damage');return;}
+    player.spells.push(item.spell);
+    popupText('player','魔法習得','mp');
+  }
+
+  writeLog(`${item.name}を入手した！`);
+  updateView();
+}
+function upgradeWeapon(){if(player.weapon.name==='なし')return writeLog('強化する武器がない！');const cost=40+stage*8+(player.weapon.plus||0)*35;if(gold<cost)return writeLog(`武器強化には${cost}G必要！`);gold-=cost;player.weapon.plus=(player.weapon.plus||0)+1;writeLog(`${player.weapon.name}を+${player.weapon.plus}に強化！ 攻撃力+4`);updateView();}
+function restAtInn(){if(gold<10)return writeLog('宿屋に泊まるGOLDが足りない！');gold-=10;player.hp=player.maxHp;player.mp=player.maxMp;casting=null;popupText('player','全回復','heal');writeLog('宿屋に泊まった。HP/MP全回復！');updateView();}
+function leaveTown(){currentShop=[];gameMode='battle';spawnEnemy();writeLog(`街を出た。STAGE ${stage}へ進む！`);updateView();}
+function animate(id,cn){const el=document.getElementById(id);el.classList.add(cn);setTimeout(()=>el.classList.remove(cn),260);}function gainMp(){const before=player.mp;player.mp=Math.min(player.maxMp,player.mp+player.mpRegen);if(player.mp>before)popupText('player','MP +'+(player.mp-before),'mp');}function magicCost(spell){const rates={fire:.20,thunder:.30,meteor:.45,nova:.65};return Math.max(1,Math.ceil(player.maxMp*(rates[spell]||.20)*(1-passiveSum('mpCost')/100)));}function spellDamage(spell,fast){let d=spell==='nova'?rand(340,460):spell==='meteor'?rand(210,310):spell==='thunder'?rand(65,95):rand(35,55);if(fast)d=Math.floor(d*0.7);return Math.max(1,d);}function applySpellStatus(spell){if(spell==='fire'&&Math.random()<.6+passiveSum('burnBoost')/100){enemy.status.burn=3;addLog('敵は火傷した！');}if(spell==='thunder'&&Math.random()<.45){enemy.status.stun=1;addLog('敵はしびれてスタンした！');}if(spell==='meteor'&&Math.random()<.5+passiveSum('burnBoost')/100){enemy.status.burn=4;addLog('敵は大火傷した！');}if(spell==='nova'){enemy.status.burn=5;enemy.status.stun=1;addLog('敵はノヴァで崩れた！');}}
+function rollPassive(){
+  const types=Object.keys(passiveTypes),type=types[rand(0,types.length-1)],r=rollRarity();
+  let value=r.value;
+  if(type==='fastCast')value=30;
+  if(type==='lifestealBoost')value=r.rarity==='Common'?1:r.rarity==='Rare'?2:r.rarity==='Epic'?3:5;
+  if(type==='defBoost')value=r.rarity==='Common'?6:r.rarity==='Rare'?12:r.rarity==='Epic'?20:32;
+  if(type==='regen')value=r.rarity==='Common'?1:r.rarity==='Rare'?2:r.rarity==='Epic'?3:5;
+  return{type,value,rarity:r.rarity};
+}function makePassiveChoices(){passiveChoices=[];const seen=new Set();while(passiveChoices.length<3){const p=rollPassive(),key=p.type+p.value;if(!seen.has(key)){seen.add(key);passiveChoices.push(p);}}}function renderPassiveChoices(){const grid=document.getElementById('passiveGrid');grid.innerHTML='';if(passiveChoices.length===0)makePassiveChoices();passiveChoices.forEach((p,i)=>{const t=passiveTypes[p.type];const card=document.createElement('div');card.className='shop-card rarity-'+p.rarity;card.innerHTML=`<h3>${t.name} ${p.value}${t.unit}</h3><p>レア度: ${p.rarity}<br>${t.desc(p.value)}</p><button class="purple" onclick="choosePassive(${i})">これを選ぶ</button>`;grid.appendChild(card);});}function choosePassive(i){const p=passiveChoices[i];player.passives.push(p);recalcStats();writeLog(`パッシブ獲得！ ${passiveTypes[p.type].name} ${p.value}${passiveTypes[p.type].unit} [${p.rarity}]`);passiveChoices=[];goAfterPassive();}function skipPassive(){writeLog('パッシブを選ばず進んだ。');passiveChoices=[];goAfterPassive();}function goAfterPassive(){if(pendingAfterPassive==='town'){gameMode='town';currentShop=[];addLog('安全な街に到着した！');}else{gameMode='battle';spawnEnemy();addLog(`STAGE ${stage}へ進んだ！`);}updateView();}
+function gainExp(a){player.exp+=a;addLog(`${a} EXPを手に入れた！`);while(player.exp>=player.nextExp){player.exp-=player.nextExp;player.level++;player.nextExp=Math.floor(player.nextExp*1.35+20);player.baseMaxHp+=rand(34,52);player.baseAtk+=rand(7,12);player.baseDef+=rand(4,7);player.baseMaxMp+=rand(4,8);recalcStats();player.hp=player.maxHp;player.potions++;popupText('player','LEVEL UP','heal');addLog(`LEVEL UP！ LV ${player.level}！ HP全回復！`);}}
+function checkEnd(){if(enemy.hp<=0){addLog(`${enemy.name}を倒した！`);gainExp(enemy.exp);const g=enemy.gold+Math.floor(stage*2.5);gold+=g;addLog(`${g} GOLDを手に入れた！`);const wasBoss=!!bossData[stage];if(stage===30)addLog('FINAL BOSS撃破！クリア！ここから先は無限モード！');stage++;const townChance=.15;let nextMode='battle';if(stage%5===0||wasBoss)nextMode='town';else if(Math.random()<townChance)nextMode='town';const shouldPassive=(stage%5===0)||wasBoss;if(shouldPassive){pendingAfterPassive=nextMode;gameMode='passive';passiveChoices=[];addLog('節目報酬！3つのパッシブから1つ選べる！');}else if(nextMode==='town'){gameMode='town';currentShop=[];addLog('安全な街に到着した！');}else{spawnEnemy();addLog(`STAGE ${stage}へ進んだ！`);}updateView();busy=false;return true;}if(player.hp<=0){handleDeath();return true;}return false;}
+function handleDeath(){addLog('やられた……');casting=null;if(mode==='easy'){stage=Math.max(1,stage-5);player.hp=player.maxHp;player.mp=Math.floor(player.maxMp*.35);player.guard=false;player.status=statusObj();gameMode='battle';spawnEnemy();addLog('Easy: 5ステージ戻って復活！MPは35%回復。');busy=false;updateView();}else if(mode==='normal'){stage=Math.max(1,stage-5);gold=Math.floor(gold/2);player.hp=player.maxHp;player.mp=Math.floor(player.maxMp*.25);player.guard=false;player.status=statusObj();gameMode='battle';spawnEnemy();addLog('Normal: 5ステージ戻って復活。GOLD半減、MP25%回復。');busy=false;updateView();}else{addLog('Hard: GAME OVER。復活できない。');busy=true;updateView();}}
+function applyVenomHeal(){
+  const v=passiveSum('venomHeal');
+  if(v>0&&enemy&&enemy.status&&enemy.status.poison>0){
+    const h=Math.max(3,Math.floor(player.maxHp*v/100));
+    player.hp=Math.min(player.maxHp,player.hp+h);
+    popupText('player','毒吸収 +'+h,'heal');
+    addLog(`毒吸収でHP${h}回復！`);
+  }
+}
+function applyLifeSteal(){
+  if(player.weapon.effect!=='lifesteal')return;
+  const rate=0.10+passiveSum('lifestealBoost')/100;
+  const h=Math.max(1,Math.floor(player.atk*rate));
+  player.hp=Math.min(player.maxHp,player.hp+h);
+  popupText('player','吸血 +'+h,'heal');
+  addLog(`吸血でHP${h}回復！`);
+}
+function applyWeaponEffect(){const e=player.weapon.effect;if(!e)return;if(e==='poison'&&Math.random()<.45+passiveSum('poisonBoost')/100){enemy.status.poison=3;addLog('ポイズンダガーの効果！毒を付与した！');}if(e==='burn'&&Math.random()<.35+passiveSum('burnBoost')/100){enemy.status.burn=3;addLog('炎の剣の効果！火傷を付与した！');}if(e==='stun'&&Math.random()<.18){enemy.status.stun=1;addLog('プラズマブレードの効果！スタンさせた！');}if(e==='boss'&&enemy.boss){const d=damage(enemy,Math.floor(player.atk*.5));addLog(`ドラゴンキラー特効！追加${d}ダメージ！`);}if(e==='void'&&Math.random()<.35){enemy.status.poison=3;enemy.status.burn=3;if(Math.random()<.25)enemy.status.stun=1;addLog('ヴォイドエッジの効果！状態異常を付与した！');}}
+function applyRegen(){const v=passiveSum('regen');if(v>0){const h=Math.max(2,Math.floor(player.maxHp*v/100));player.hp=Math.min(player.maxHp,player.hp+h);popupText('player','自然回復 +'+h,'heal');addLog(`自然回復でHP${h}回復！`);}}
+function playerAction(type){if(busy||gameMode!=='battle')return;busy=true;player.guard=false;writeLog('');applyStatusEffects(player,'プレイヤー');applyRegen();if(player.hp<=0){updateView();checkEnd();return;}if(player.status.stun>0){player.status.stun--;addLog('プレイヤーはスタンして動けない！');updateView();setTimeout(enemyTurn,650);return;}if(player.skillCd>0)player.skillCd--;if(player.magicCd>0)player.magicCd--;gainMp();if(type==='attack'){if(casting){addLog('詠唱を中断して攻撃した！');casting=null;}animate('playerSprite','attack');let atk=player.status.burn>0?Math.floor(player.atk*.7):player.atk;const d=damage(enemy,rand(atk-4,atk+6));addLog(`攻撃！ ${d}ダメージ！`);applyWeaponEffect();applyLifeSteal();animate('enemyBox','shake');}if(type==='skill'){if(casting){addLog('詠唱を中断してスキルを使った！');casting=null;}if(player.skillCd>0)addLog(`スキルはあと${player.skillCd}ターン使えない！`);else{player.skillCd=3;animate('playerSprite','attack');if(Math.random()<.22)addLog('スキル発動！ ……しかし外れた！');else{let atk=player.status.burn>0?Math.floor(player.atk*.7):player.atk;let base=rand(atk+12,atk+26);
+base=Math.floor(base*(1+passiveSum('skillBoost')/100));
+const d=damage(enemy,base);
+addLog(`スキル発動！ ${d}ダメージ！${passiveSum('skillBoost')?` 武技強化+${passiveSum('skillBoost')}%`:''}`);animate('enemyBox','shake');}}}if(type==='magic'){if(casting){addLog('すでに詠唱中！次のターンまで耐えろ！');updateView();busy=false;return;}if(!player.spells.length)addLog('まだ魔法を覚えていない！');else if(player.magicCd>0)addLog(`魔法はあと${player.magicCd}ターン使えない！`);else{const spell=player.spells[player.spells.length-1],cost=magicCost(spell);if(player.mp<cost){addLog(`MPが足りない！ 必要MP:${cost}`);updateView();busy=false;return;}player.mp-=cost;popupText('player','MP -'+cost,'mp');player.magicCd=2;const needsCast=(spell==='meteor'||spell==='nova')&&!hasPassive('fastCast');if(needsCast){casting={spell};addLog(`${spell.toUpperCase()}の詠唱を開始した……次の自分のターン開始時に発動！`);}else{animate('playerSprite','attack');const fast=(spell==='meteor'||spell==='nova')&&hasPassive('fastCast');const d=damage(enemy,spellDamage(spell,fast));addLog(`${spell.toUpperCase()}！ MP-${cost} / ${d}ダメージ！${fast?' 詠唱省略で威力低下':''}`);applySpellStatus(spell);animate('enemyBox','shake');}}}if(type==='heal'){if(casting){addLog('詠唱を中断して回復した！');casting=null;}if(player.hiPotions>0&&player.hp<player.maxHp*.45){player.hiPotions--;const h=Math.floor(player.maxHp*.8);player.hp=Math.min(player.maxHp,player.hp+h);popupText('player','+'+h,'heal');addLog(`ハイポーション！ ${h}回復！`);}else if(player.potions>0&&player.hp<player.maxHp){player.potions--;const h=Math.floor(player.maxHp*.45);player.hp=Math.min(player.maxHp,player.hp+h);popupText('player','+'+h,'heal');addLog(`ポーション！ ${h}回復！`);}else addLog('回復できない！');}if(type==='guard'){player.guard=true;addLog(casting?'詠唱しながらガードした！':'ガードした！');}
+if(type!=='heal')applyVenomHeal();
+updateView();if(checkEnd())return;setTimeout(enemyTurn,650);}
+function enemyTurn(){applyStatusEffects(enemy,enemy.name);if(enemy.hp<=0){updateView();checkEnd();return;}enemy.guard=false;if(enemy.status.stun>0){enemy.status.stun--;addLog(`${enemy.name}はスタンして動けない！`);updateView();busy=false;return;}let raw,n=enemy.name;if(n.includes('Goblin')&&Math.random()<.35){raw=rand(enemy.atk-2,enemy.atk+4)*2;addLog(`${enemy.name}の連続攻撃！`);}else if(n.includes('Bot')&&Math.random()<.35){enemy.guard=true;addLog(`${enemy.name}は防御モードに入った！`);updateView();busy=false;return;}else if(n.includes('Serpent')&&Math.random()<.35){player.status.poison=4;raw=rand(enemy.atk-4,enemy.atk+4);addLog(`${enemy.name}の毒牙！毒を受けた！`);}else if((n.includes('Dragon')||enemy.boss)&&Math.random()<.32){player.status.burn=3;raw=rand(enemy.atk+16,enemy.atk+38);addLog(`${enemy.name}の火炎攻撃！火傷した！`);}else if(enemy.boss&&Math.random()<.28){raw=rand(enemy.atk+20,enemy.atk+45);addLog(`${enemy.name}の必殺攻撃！`);}else if(Math.random()<.68){raw=rand(enemy.atk-3,enemy.atk+5);}else if(Math.random()<.9){raw=rand(enemy.atk+6,enemy.atk+14);addLog(`${enemy.name}の強攻撃！`);}else{enemy.guard=true;addLog(`${enemy.name}は身構えた！`);updateView();busy=false;return;}if(enemy.status.burn>0)raw=Math.floor(raw*.7);if(passiveSum('burnTank')&&enemy.status.burn>0)raw=Math.floor(raw*(1-passiveSum('burnTank')/100));animate('enemySprite','attack');const reduced=Math.floor(raw*(100/(100+player.def)));const d=damage(player,Math.max(1,reduced));addLog(`${enemy.name}の攻撃！ ${d}ダメージ！`);animate('playerBox','shake');updateView();if(checkEnd())return;if(casting){const spell=casting.spell;casting=null;animate('playerSprite','attack');const d2=damage(enemy,spellDamage(spell,false));addLog(`詠唱完了！ ${spell.toUpperCase()}発動！ ${d2}ダメージ！`);applySpellStatus(spell);animate('enemyBox','shake');updateView();if(checkEnd())return;}busy=false;}
+
+
+function toggleHelp(){writeLog(`目標: ステージ30のFINAL BOSS撃破！
+5ステージごとに3つのパッシブから1つ選択。
+防御は割合軽減。毒吸収は自分の行動後だけ発動。
+パッシブは5/10/15/20%などレア度付き。
+メテオ/ノヴァは詠唱魔法。詠唱省略パッシブで即発動できるが威力30%低下。
+レベルアップではMP全回復しない。
+ショップはポーション/ハイポーション固定＋ランダム3枠。
+通常攻撃の状態異常は専用武器が必要。
+街で武器強化ができる。`);}
+</script>
+</body>
+</html>
